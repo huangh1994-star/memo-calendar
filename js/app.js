@@ -4,6 +4,9 @@
  */
 
 // ========== 初始化 ==========
+/** PWA 安装事件引用 */
+let deferredPrompt = null;
+
 function init() {
   // 初始化节日数据
   initHolidays();
@@ -17,6 +20,31 @@ function init() {
   // 绑定事件
   bindEvents();
 
+  // PWA 安装监听
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // 阻止 Chrome 自动弹出安装提示
+    e.preventDefault();
+    // 保存事件以便手动触发
+    deferredPrompt = e;
+    // 显示安装按钮
+    const btn = document.getElementById('btn-install');
+    if (btn) btn.style.display = 'flex';
+  });
+
+  // 监听安装完成
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    const btn = document.getElementById('btn-install');
+    if (btn) btn.style.display = 'none';
+    console.log('📱 PWA 已安装');
+  });
+
+  // 如果已安装（standalone 模式），隐藏按钮
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    const btn = document.getElementById('btn-install');
+    if (btn) btn.style.display = 'none';
+  }
+
   // 注册 Service Worker（生产环境）
   if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {
@@ -25,6 +53,22 @@ function init() {
   }
 
   console.log('📅 提醒备忘日历已就绪');
+}
+
+/** 手动触发 PWA 安装 */
+function installPWA() {
+  if (!deferredPrompt) {
+    alert('安装功能暂不可用。请尝试：\n\n1. 点击浏览器右上角菜单\n2. 选择"添加到主屏幕"或"安装应用"');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((result) => {
+    if (result.outcome === 'accepted') {
+      console.log('📱 用户接受了安装');
+    }
+    deferredPrompt = null;
+    document.getElementById('btn-install').style.display = 'none';
+  });
 }
 
 // ========== 全局事件绑定 ==========

@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="备忘日历">
   <meta name="description" content="倒计时提醒、事件备忘、传统节日日历">
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./css/style.css?v=20260725">
+  <link rel="stylesheet" href="./css/style.css?v=20260725b">
   <title>提醒备忘日历</title>
 </head>
 <body>
@@ -19,6 +19,7 @@
       <div class="header-top">
         <h1 class="app-title">📅 提醒备忘日历</h1>
         <div class="header-actions">
+          <button class="btn btn-outline" id="btn-install" style="display:none" onclick="installPWA()" title="安装应用">📲 安装</button>
           <button class="btn btn-outline" id="btn-today">今天</button>
           <button class="btn btn-primary" id="btn-add-event">+ 添加</button>
         </div>
@@ -116,10 +117,10 @@
   </div>
 
   <!-- ===== JavaScript 模块（顺序加载） ===== -->
-  <script src="./js/lunar.js?v=20260725"></script>
-  <script src="./js/events.js?v=20260725"></script>
-  <script src="./js/calendar.js?v=20260725"></script>
-  <script src="./js/countdown.js?v=20260725"></script>
-  <script src="./js/app.js?v=20260725"></script>
+  <script src="./js/lunar.js?v=20260725b"></script>
+  <script src="./js/events.js?v=20260725b"></script>
+  <script src="./js/calendar.js?v=20260725b"></script>
+  <script src="./js/countdown.js?v=20260725b"></script>
+  <script src="./js/app.js?v=20260725b"></script>
 </body>
 </html>
