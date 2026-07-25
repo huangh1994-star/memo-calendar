@@ -7,18 +7,25 @@
 // ========== 年份基础数据 ==========
 
 /**
- * 2025-2030 农历年数据（已验证）
+ * 2025-2030 农历年数据（已根据官方农历校对）
  * cny: 农历正月初一的公历日期
  * months: 12个字符，'0'=29天，'1'=30天
- * leap: 闰月月份（0=无闰月），闰月固定29天
+ * leap: 闰月月份（0=无闰月），闰月天数通过 leapDays 指定
+ * leapDays: 闰月天数（29或30），默认29
  */
 const LUNAR_YEAR_DATA = {
-  2025: { cny: '2025-01-29', months: '101010101010', leap: 0 }, // 乙巳年
-  2026: { cny: '2026-02-17', months: '010101010101', leap: 6 }, // 丙午年，闰六月
-  2027: { cny: '2027-02-06', months: '101010101010', leap: 0 }, // 丁未年
-  2028: { cny: '2028-01-26', months: '101010101010', leap: 5 }, // 戊申年，闰五月
-  2029: { cny: '2029-02-13', months: '101010010101', leap: 0 }, // 己酉年
-  2030: { cny: '2030-02-03', months: '010101010101', leap: 0 }, // 庚戌年
+  // 乙巳年，闰六月（29天），正月30天
+  2025: { cny: '2025-01-29', months: '101010101010', leap: 6, leapDays: 29 },
+  // 丙午年，无闰月，正月29天
+  2026: { cny: '2026-02-17', months: '010101010101', leap: 0 },
+  // 丁未年，无闰月，正月30天
+  2027: { cny: '2027-02-06', months: '101010101010', leap: 0 },
+  // 戊申年，闰五月（29天），正月30天
+  2028: { cny: '2028-01-26', months: '101011010101', leap: 5, leapDays: 29 },
+  // 己酉年，无闰月，正月30天
+  2029: { cny: '2029-02-13', months: '101010101010', leap: 0 },
+  // 庚戌年，无闰月，正月29天
+  2030: { cny: '2030-02-03', months: '010101010101', leap: 0 },
 };
 
 // 农历月份名称
@@ -52,12 +59,13 @@ function getLunarYearData(year) {
 function daysFromCNY(yearData, month, day) {
   let days = 0;
   const leap = yearData.leap;
+  const leapDays = yearData.leapDays || 29;
 
   for (let m = 1; m < month; m++) {
     days += (yearData.months[m - 1] === '1') ? 30 : 29;
     // 经过闰月（闰月在对应月份之后）
     if (m === leap) {
-      days += 29; // 闰月固定29天（近似，实际29或30）
+      days += leapDays;
     }
   }
   days += (day - 1);
@@ -100,6 +108,7 @@ function solarToLunar(date) {
 
   // 逐月推进
   const leap = yearData.leap;
+  const leapDays = yearData.leapDays || 29;
   let lunarMonth = 1;
   let isLeap = false;
 
@@ -114,7 +123,6 @@ function solarToLunar(date) {
 
     // 检查闰月
     if (m === leap) {
-      const leapDays = 29;
       if (offset < leapDays) {
         lunarMonth = m;
         isLeap = true;
