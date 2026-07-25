@@ -1,16 +1,16 @@
 // Service Worker — 备忘日历 PWA 离线缓存
-const CACHE_NAME = 'memo-calendar-v3';
+const CACHE_NAME = 'memo-calendar-v4';
 const ASSETS = [
   './',
-  './index.html',
+  './index.html?v=20260725',
   './manifest.json',
   './icon.svg',
-  './css/style.css',
-  './js/app.js',
-  './js/calendar.js',
-  './js/events.js',
-  './js/countdown.js',
-  './js/lunar.js'
+  './css/style.css?v=20260725',
+  './js/app.js?v=20260725',
+  './js/calendar.js?v=20260725',
+  './js/events.js?v=20260725',
+  './js/countdown.js?v=20260725',
+  './js/lunar.js?v=20260725'
 ];
 
 // 安装：缓存所有静态资源
