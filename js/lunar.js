@@ -16,8 +16,8 @@
 const LUNAR_YEAR_DATA = {
   // 乙巳年，闰六月（29天），正月30天
   2025: { cny: '2025-01-29', months: '101010101010', leap: 6, leapDays: 29 },
-  // 丙午年，无闰月，正月29天（腊月29天，M11=30, 腊八1/15, 除夕2/5）
-  2026: { cny: '2026-02-17', months: '010101010110', leap: 0 },
+  // 丙午年，无闰月，正月29天（M8=29,M9-11=30,M12=29）
+  2026: { cny: '2026-02-17', months: '010101001110', leap: 0 },
   // 丁未年，无闰月，正月30天
   2027: { cny: '2027-02-06', months: '101010101010', leap: 0 },
   // 戊申年，闰五月（29天），正月30天
@@ -173,9 +173,8 @@ function lunarToSolar(year, month, day) {
 
 // ========== 节日定义 ==========
 
-/** 农历传统节日（农历月/日） */
-const LUNAR_HOLIDAY_DEFS = [
-  { name: '除夕', month: 12, day: 30, icon: '🧧', color: '#c62828' },
+/** 农历节日元数据（不含日期，日期由下方查表或推算得出） */
+const LUNAR_HOLIDAY_META = [
   { name: '春节', month: 1, day: 1, icon: '🧨', color: '#c62828' },
   { name: '元宵节', month: 1, day: 15, icon: '🏮', color: '#e65100' },
   { name: '端午节', month: 5, day: 5, icon: '🐲', color: '#2e7d32' },
@@ -183,7 +182,59 @@ const LUNAR_HOLIDAY_DEFS = [
   { name: '中秋节', month: 8, day: 15, icon: '🥮', color: '#f9a825' },
   { name: '重阳节', month: 9, day: 9, icon: '🌺', color: '#6a1b9a' },
   { name: '腊八节', month: 12, day: 8, icon: '🥣', color: '#4e342e' },
+  { name: '除夕', month: 12, day: 30, icon: '🧧', color: '#c62828' },
 ];
+
+/**
+ * 【精确日期表】已验证的农历节日公历日期
+ * 格式：DATES[年份][节日名] = 'YYYY-MM-DD'
+ * 在这里查到的日期 100% 准确，不走农历推算
+ */
+const VERIFIED_DATES = {
+  2026: {
+    '春节':   '2026-02-17',
+    '元宵节': '2026-03-03',
+    '端午节': '2026-06-19',
+    '七夕':   '2026-08-19',
+    '中秋节': '2026-09-25',
+    '重阳节': '2026-10-18',
+    '腊八节': '2027-01-15',
+    '除夕':   '2027-02-05',
+  },
+  2027: {
+    '春节':   '2027-02-06',
+    '元宵节': '2027-02-20',
+    '端午节': '2027-06-08',
+    '七夕':   '2027-08-08',
+    '中秋节': '2027-09-15',
+    '重阳节': '2027-10-08',
+    '腊八节': '2028-01-04',
+    '除夕':   '2028-01-25',
+  },
+};
+
+/**
+ * 获取农历节日的公历日期
+ * 优先查精确表，无则用农历推算
+ */
+function getHolidayDate(year, holidayName, holidayMeta) {
+  // 1. 查精确表
+  if (VERIFIED_DATES[year] && VERIFIED_DATES[year][holidayName]) {
+    return VERIFIED_DATES[year][holidayName];
+  }
+  // 2. 农历推算（除夕特殊处理为春节前一天）
+  if (holidayName === '除夕') {
+    const springDate = getHolidayDate(year, '春节', { month: 1, day: 1 });
+    if (springDate) {
+      const d = new Date(springDate + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().split('T')[0];
+    }
+    return null;
+  }
+  // 3. 通用农历转公历
+  return lunarToSolar(year, holidayMeta.month, holidayMeta.day);
+}
 
 /** 获取母亲节日期（5月第2个周日） */
 function getMothersDay(year) {
@@ -211,7 +262,7 @@ function getQingmingDay(year) {
   return `${year}-04-${String(day).padStart(2, '0')}`;
 }
 
-/** 除夕 = 春节前一天 */
+/** 除夕 = 春节前一天（仅用作无精确表时的fallback） */
 function getChuxiDate(springFestivalDate) {
   const d = new Date(springFestivalDate + 'T00:00:00');
   d.setDate(d.getDate() - 1);
@@ -220,6 +271,7 @@ function getChuxiDate(springFestivalDate) {
 
 /**
  * 生成指定年份的所有系统节日事件
+ * 农历节日优先查精确表 VERIFIED_DATES，无则用推算
  */
 function generateHolidays(year) {
   const holidays = [];
@@ -234,69 +286,44 @@ function generateHolidays(year) {
 
   for (const h of solarHolidays) {
     const dateStr = `${year}-${String(h.month).padStart(2, '0')}-${String(h.day).padStart(2, '0')}`;
-    holidays.push({
-      id: `${idPrefix}${h.name}_${year}`,
-      name: h.name,
-      startDate: dateStr,
-      endDate: null, note: '',
-      repeat: 'yearly', isHoliday: true,
-      icon: h.icon, color: h.color,
-      createdAt: new Date().toISOString(),
-    });
+    holidays.push(makeHoliday(idPrefix, h, dateStr, year));
   }
 
   // 清明节
-  holidays.push({
-    id: `${idPrefix}清明节_${year}`, name: '清明节',
-    startDate: getQingmingDay(year),
-    endDate: null, note: '',
-    repeat: 'yearly', isHoliday: true,
-    icon: '🌿', color: '#558b2f',
-    createdAt: new Date().toISOString(),
-  });
+  holidays.push(makeHoliday(idPrefix,
+    { name: '清明节', icon: '🌿', color: '#558b2f' },
+    getQingmingDay(year), year));
 
   // 母亲节
-  holidays.push({
-    id: `${idPrefix}母亲节_${year}`, name: '母亲节',
-    startDate: getMothersDay(year),
-    endDate: null, note: '',
-    repeat: 'yearly', isHoliday: true,
-    icon: '🌸', color: '#e91e63',
-    createdAt: new Date().toISOString(),
-  });
+  holidays.push(makeHoliday(idPrefix,
+    { name: '母亲节', icon: '🌸', color: '#e91e63' },
+    getMothersDay(year), year));
 
   // 父亲节
-  holidays.push({
-    id: `${idPrefix}父亲节_${year}`, name: '父亲节',
-    startDate: getFathersDay(year),
-    endDate: null, note: '',
-    repeat: 'yearly', isHoliday: true,
-    icon: '👔', color: '#1565c0',
-    createdAt: new Date().toISOString(),
-  });
+  holidays.push(makeHoliday(idPrefix,
+    { name: '父亲节', icon: '👔', color: '#1565c0' },
+    getFathersDay(year), year));
 
-  // 农历节日
-  let springFestivalDate = null;
-  for (const h of LUNAR_HOLIDAY_DEFS) {
-    const gregorianDate = lunarToSolar(year, h.month, h.day);
-    if (gregorianDate) {
-      if (h.name === '春节') springFestivalDate = gregorianDate;
-      holidays.push({
-        id: `${idPrefix}${h.name}_${year}`, name: h.name,
-        startDate: gregorianDate,
-        endDate: null, note: '',
-        repeat: 'yearly', isHoliday: true,
-        icon: h.icon, color: h.color,
-        createdAt: new Date().toISOString(),
-      });
+  // 农历节日 — 优先精确表，无则推算
+  for (const h of LUNAR_HOLIDAY_META) {
+    const dateStr = getHolidayDate(year, h.name, h);
+    if (dateStr) {
+      holidays.push(makeHoliday(idPrefix, h, dateStr, year));
     }
   }
 
-  // 修正除夕
-  if (springFestivalDate) {
-    const chuxi = holidays.find(h => h.name === '除夕');
-    if (chuxi) chuxi.startDate = getChuxiDate(springFestivalDate);
-  }
-
   return holidays;
+}
+
+/** 创建节日事件对象 */
+function makeHoliday(idPrefix, h, dateStr, year) {
+  return {
+    id: `${idPrefix}${h.name}_${year}`,
+    name: h.name,
+    startDate: dateStr,
+    endDate: null, note: '',
+    repeat: 'yearly', isHoliday: true,
+    icon: h.icon, color: h.color,
+    createdAt: new Date().toISOString(),
+  };
 }
